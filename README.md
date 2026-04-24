@@ -5,13 +5,13 @@
 
 ---
 
-## 📌 Overview
+## Overview
 
 CineSlot is an AI-powered movie scheduling assistant that intelligently plans your movie-watching sessions around your real-world time availability, personal taste, and viewing history. Unlike traditional recommendation engines, CineSlot treats movie selection as a **constraint-satisfaction problem** — scheduling the right film into the right time slot while respecting franchise chronological order, mood consistency, subscription availability, and prime-time preferences.
 
 ---
 
-## 🚩 Problem Statement
+## Problem Statement
 
 Today's streaming landscape is overwhelming. Users face:
 
@@ -25,68 +25,52 @@ CineSlot solves all of this by acting not just as a recommender, but as an **int
 
 ---
 
-## ✨ Features
+## Features
 
-### 🕐 Time Slot Management
+### Time Slot Management
 - Define available time windows per day (e.g., Saturday 8 PM – 11 PM)
 - Movies are matched to slots based on runtime — no overruns
 
-### 🤖 Constraint-Based Scheduling (AI Heuristics)
+### Constraint-Based Scheduling (AI Heuristics)
 - **LCV (Least Constraining Value):** Selects movies that maximize remaining scheduling flexibility
 - **MRV (Minimum Remaining Values):** Fills the hardest-to-satisfy slots first
 - **Prime-Time Consistency:** Highest-rated unwatched films are assigned to your preferred prime slots
 
-### 🎥 Franchise & Universe Awareness
+### Franchise & Universe Awareness
 - Detects MCU, DCEU, Harry Potter, Star Wars, and more
 - Enforces chronological viewing order automatically
 - Inference engine: if you've watched *Iron Man 1*, only post-Iron Man 1 entries are considered
 
-### 🎯 Personalized Recommendation Engine
+### Personalized Recommendation Engine
 - **Recommended For You** — based on watch history, ratings, and genre preferences
 - **Try Something New** — surfaces highly rated films outside your comfort zone
-- Real-time filtering as you type; already-watched films are never resurfaced
+- Real-time filtering as you type
+- already-watched films are never resurfaced
 
-### 📋 Watch History & Ratings
+### Watch History & Ratings
 - Mark films as watched after each viewing
 - Star/upvote ratings feed back into the recommendation model in real time
 
-### 😊 Mood Consistency
+### Mood Consistency
 - Prevents emotionally mismatched films back-to-back (e.g., no two heavy dramas in one day)
 - Toggleable by the user
 
-### 🎞️ Trailer Integration
+### Trailer Integration
 - Trailers fetched via **YouTube Data API v3**
 - Plays the most engaging segment — not just the full trailer
 
-### 📡 Subscription Awareness *(Optional)*
+### Subscription Awareness *(Optional)*
 - Filter recommendations by your active subscriptions (Netflix, Prime, Disney+, etc.)
 - Can be disabled at any time
 
-### 💬 Explainable AI
+### Explainable AI
 Every scheduling decision comes with a human-readable explanation:
 > *"I placed The Avengers on Saturday night because it is your highest-rated remaining MCU film, and you prefer high-rated films for night slots."*
 
-### 🖱️ Manual Override
+### Manual Override
 - AI generates the initial schedule, but you can drag, swap, and remove films freely
 
----
-
-## 🛠️ Tech Stack
-
-| Component | Technology |
-|---|---|
-| Movie Dataset | Kaggle — TMDB / IMDb Movie Dataset |
-| Recommendation Engine | Content-based + Collaborative Filtering (Python, scikit-learn, pandas) |
-| Scheduling AI | CSP with LCV & MRV heuristics (Python) |
-| Trailer Integration | YouTube Data API v3 |
-| Franchise Data | TMDB API |
-| Backend | Python |
-| Frontend | React |
-| Database | SQL |
-
----
-
-## 🧠 AI & Algorithmic Design
+## AI & Algorithmic Design
 
 ### Constraint Satisfaction Problem (CSP)
 - **Variables:** Each available time slot
@@ -101,38 +85,3 @@ Every scheduling decision comes with a human-readable explanation:
 ### Inference Engine
 - Rule-based logic derived from watch history
 - Completion component selects an optimal franchise subset ranked by predicted rating
-
----
-
-## 🗺️ Project Roadmap
-
-| Phase | Milestone |
-|---|---|
-| 1 | Research & Data — Kaggle dataset, TMDB API, franchise mapping |
-| 2 | Core AI Engine — CSP, LCV/MRV, constraint definitions, inference engine |
-| 3 | Recommendation System — Content-based, collaborative, hybrid model |
-| 4 | API Integration — YouTube API, subscription filter logic |
-| 5 | Backend Development — REST API, database schema, user profiles |
-| 6 | Frontend UI — Slot editor, movie cards, drag-and-drop, explainability panel |
-| 7 | Testing — Unit, integration, user testing, benchmarking |
-| 8 | Final Polish — Bug fixes, documentation, demo video, final report |
-
----
-
-## 👥 Team
-
-| Name | Student ID |
-|---|---|
-| Jayesha Yamin | 24k0522 |
-| Fuzail Raza | 24k0699 |
-| Seniya Naeem | 24k0608 |
-
-**Course:** Artificial Intelligence  
-**Instructor:** Ahmed Riaz  
-**Submission Date:** April 8, 2026
-
----
-
-## 📄 License
-
-This project is developed for academic purposes as part of a university AI course.
