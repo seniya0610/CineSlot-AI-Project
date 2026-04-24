@@ -1,8 +1,6 @@
 # CineSlot
 ### AI-Powered Personalized Movie Scheduling System
 
-> Because knowing *what* to watch is only half the problem — knowing *when* fits your day is the other.
-
 ## Overview
 
 CineSlot is an AI-powered movie scheduling assistant that intelligently plans your movie-watching sessions around your real-world time availability, personal taste, and viewing history. Unlike traditional recommendation engines, CineSlot treats movie selection as a **constraint-satisfaction problem** — scheduling the right film into the right time slot while respecting franchise chronological order, mood consistency, subscription availability, and prime-time preferences.
