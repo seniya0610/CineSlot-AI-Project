@@ -1,4 +1,4 @@
-# CineSlot 🎬
+# CineSlot
 ### AI-Powered Personalized Movie Scheduling System
 
 > Because knowing *what* to watch is only half the problem — knowing *when* fits your day is the other.
