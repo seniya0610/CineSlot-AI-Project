@@ -42,17 +42,27 @@ class CineSlotUI:
             <style>
             
             @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap');
+            @import url('https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap');
             
-                /* Background */
                 .stApp {
                     background-color: black;
                     color: white;
+                    font-family: 'Lato', sans-serif !important;
                 }
 
-                /* Sidebar background */
                 [data-testid="stSidebar"] {
                     background-color: black;
                     border-right: 1px solid #2a2a2a;
+                    min-width: 290px !important;
+                    max-width: 290px !important;
+                    transform: none !important;
+                    visibility: visible !important;
+                }
+                
+                header[data-testid="stHeader"]{
+                    background-color: #171717;
+                    height: 20px !important;
+                    padding: 0 !important
                 }
 
                 /* Hide default radio buttons entirely */
@@ -66,8 +76,8 @@ class CineSlotUI:
                     align-items: left;
                     background-color: #171717;
                     color: #e0e0e0 !important;
-                    font-size: 30px;
-                    font-weight: 600;
+                    font-size: 40px;
+                    font-weight: 700;
                     padding: 12px 16px;
                     border-radius: 10px;
                     margin-bottom: 8px;
@@ -86,8 +96,7 @@ class CineSlotUI:
                 [data-testid="stSidebar"] .stRadio {
                         margin-top: -30px;
                 }
-
-                /* Headings */
+                
                 h1, h2, h3 {
                     letter-spacing: 1px;
                 }
@@ -124,7 +133,7 @@ class CineSlotUI:
 
             st.markdown("<hr style='border-color:#2a2a2a; margin: 16px 0;'>", unsafe_allow_html=True)
             st.markdown(
-                "<div style='color:#555555; font-size:11px; letter-spacing:2px; padding: 0 8px;'>TMDB · 4,800+ FILMS</div>",
+                "<div style='color:#555555; font-size:11px; letter-spacing:2px; padding: 0 8px;'>v1 · AI Powered Engine</div>",
                 unsafe_allow_html=True
             )
 
