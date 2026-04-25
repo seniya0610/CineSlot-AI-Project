@@ -21,7 +21,6 @@ class CineSlotDB:
         credits.to_sql('credits', self.database, if_exists='replace', index=False)
 
     def read_all(self):
-        # We select specific columns and rename 'vote_average' to 'rating'
         query = """
             SELECT 
                 movies.id, 
