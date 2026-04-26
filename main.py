@@ -3,9 +3,9 @@ import pandas as pd
 import streamlit as st
 from datetime import datetime, date
 
-MOVIES_NORMALIZED = "data/normalized/movies.csv"
-GENRES_NORMALIZED = "data/normalized/genres.csv"
-MOVIE_GENRES_NORMALIZED = "data/normalized/movie_genres.csv"
+MOVIES_NORMALIZED = "normalized/movies.csv"
+GENRES_NORMALIZED = "normalized/genres.csv"
+MOVIE_GENRES_NORMALIZED = "normalized/movie_genres.csv"
 
 REQUIRED_FILES = [MOVIES_NORMALIZED, GENRES_NORMALIZED, MOVIE_GENRES_NORMALIZED]
 
@@ -72,13 +72,13 @@ class CineSlotUI:
         @import url('https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700;900&display=swap');
 
         .stApp {
-            background-color: #000000;
+            background-color: black;
             color: white;
             font-family: 'Lato', sans-serif;
         }
 
         header[data-testid="stHeader"] {
-            background-color: #000000;
+            background-color: black;
         }
 
         [data-testid="stSidebar"] {
@@ -87,9 +87,9 @@ class CineSlotUI:
             padding-left: 0;
             padding-right: 0;
         }
-
+        
         [data-testid="stSidebar"] .stRadio {
-            width: 100%;
+            width: 230%;
         }
 
         [data-testid="stSidebar"] .stRadio > div {
@@ -98,24 +98,29 @@ class CineSlotUI:
 
         [data-testid="stSidebar"] .stRadio label {
             width: 100% !important;
-            min-height: 52px;
-            background: linear-gradient(145deg, #111111, #070707);
+            min-height: 60px;
+            background: linear-gradient(130deg, #111111, #070707); 
             color: white !important;
             border: 1px solid #242424;
             border-radius: 14px;
             padding: 14px 18px !important;
             margin-bottom: 10px;
+            font-size: 17px;
             font-weight: 900;
-            letter-spacing: 1px;
             cursor: pointer;
             transition: all 0.25s ease-in-out;
         }
 
+        /* DO NOT REMOVE */
+        [data-testid="stSidebar"] .stRadio {
+            margin-top: -38px;
+        }
+        
         [data-testid="stSidebar"] .stRadio label:hover {
-            background: linear-gradient(145deg, #e50914, #7a0007);
-            border-color: #e50914;
+            background: linear-gradient(130deg, #E5091452, #070707);
+            border-color: #db0b15;
             transform: translateX(6px);
-            box-shadow: 0 8px 24px rgba(229, 9, 20, 0.25);
+            box-shadow: 0 5px 8px rgba(229, 9, 20, 0.25);
         }
 
         [data-testid="stSidebar"] .stRadio [data-baseweb="radio"] > div:first-child {
@@ -134,17 +139,13 @@ class CineSlotUI:
             border-radius: 12px !important;
             padding: 10px 18px !important;
             font-weight: 800 !important;
+            transition: all 0.25s ease-in-out !important;
         }
 
-        .stButton > button:hover {
-            background-color: #e50914 !important;
+        .stButton > button:hover {  
+            background: linear-gradient(135deg, #E5091452, black);
             border-color: #e50914 !important;
             color: white !important;
-        }
-
-        .stButton > button:active {
-            background-color: #b00610 !important;
-            border-color: #b00610 !important;
         }
 
         input {
@@ -152,6 +153,7 @@ class CineSlotUI:
             color: white !important;
             border: 1px solid #333333 !important;
             border-radius: 10px !important;
+            padding-right: 2px;
         }
 
         div[data-baseweb="select"] > div {
@@ -162,7 +164,7 @@ class CineSlotUI:
         }
 
         .hero {
-            background: linear-gradient(135deg, rgba(229,9,20,0.32), rgba(0,0,0,0.95)), linear-gradient(145deg, #151515, #030303);
+            background: linear-gradient(135deg, #E5091452, #000000F2);
             padding: 42px;
             border-radius: 26px;
             border: 1px solid #2a2a2a;
@@ -186,16 +188,24 @@ class CineSlotUI:
         }
 
         .section-card {
-            background: linear-gradient(145deg, #121212, #080808);
+            background: linear-gradient(145deg, #151515, #080808);
             border: 1px solid #2a2a2a;
             border-radius: 20px;
             padding: 24px;
             margin-bottom: 18px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+            transition: all 0.25s ease-in-out;
         }
 
         .section-card:hover {
-            border-color: #e50914;
+            border: 1px solid #db0b15;
+            border-left: 5px solid #e50914;
+            border-top: 1px solid #2a2a2a;
+            border-right: 1px solid #2a2a2a;
+            border-bottom: 1px solid #2a2a2a;
+            transform: translateX(5px);
+            background: linear-gradient(135deg, #E5091452, #000000F2);
+            
         }
 
         .movie-card {
@@ -206,11 +216,13 @@ class CineSlotUI:
             padding: 22px;
             margin-bottom: 16px;
             box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+            transition: all 0.25s ease-in-out;
         }
 
         .movie-card:hover {
-            background: #171717;
+            background: linear-gradient(135deg, #171717, #080808);
             border-color: #e50914;
+            transform: translateX(10px);
         }
 
         .movie-title {
@@ -251,6 +263,13 @@ class CineSlotUI:
             border: 1px solid #2a2a2a;
             min-height: 150px;
             margin-bottom: 12px;
+            min-width: 300;
+            max-width: 300;
+            min-height: 200px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.35);
+            transition: all 0.25s ease-in-out;
+            display: flex;
+            flex-direction: column;
         }
 
         .mode-card:hover {
@@ -275,6 +294,16 @@ class CineSlotUI:
             color: #999999;
             margin-top: 18px;
         }
+        
+        .random-box {
+                background: #0c0c0c;
+                border: 1px solid #2a2a2a;
+                border-radius: 20px;
+                padding: 24px;
+                box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+                margin-bottom: 20px;
+        }
+        
         </style>
         """, unsafe_allow_html=True)
 
@@ -313,21 +342,7 @@ class CineSlotUI:
             )
 
             st.markdown("<hr style='border-color:#2a2a2a; margin: 18px 0;'>", unsafe_allow_html=True)
-
-            st.markdown("""
-            <div style="
-                background:#111111;
-                border:1px solid #242424;
-                border-radius:14px;
-                padding:14px;
-                color:#777777;
-                font-size:12px;
-                line-height:1.5;
-            ">
-                <b style="color:#e50914;">CineSlot v1</b><br>
-                Smart movie planning with time-aware scheduling.
-            </div>
-            """, unsafe_allow_html=True)
+            st.caption("CineSlot v1 <br> Smart movie planning with time-aware scheduling.", unsafe_allow_html=True)
 
         return page
 
@@ -471,7 +486,7 @@ class CineSlotUI:
         <div class="hero">
             <div class="hero-title">SCHEDULE</div>
             <div class="hero-subtitle">
-                Add your available watch windows. These slots will later become CSP variables.
+                Add your available watch windows. <br> Select a date, start time, and end time. You can add multiple slots.
             </div>
         </div>
         """, unsafe_allow_html=True)
@@ -484,15 +499,6 @@ class CineSlotUI:
 
         if "selected_mood" not in st.session_state:
             st.session_state.selected_mood = None
-
-        st.markdown("""
-        <div class="section-card">
-            <h2>Add Your Watch Window</h2>
-            <p style="color:#b3b3b3;">
-                Select a date, start time, and end time. You can add multiple slots.
-            </p>
-        </div>
-        """, unsafe_allow_html=True)
 
         col1, col2, col3 = st.columns([1.4, 1, 1])
 
@@ -570,7 +576,7 @@ class CineSlotUI:
                 <div style="color:#b3b3b3; margin-top:8px;">
                     Choose a mood and CineSlot will later filter movies using related genres.
                 </div>
-                <div style="color:#e50914; margin-top:14px; font-weight:800;">
+                <div style="color:#e50914; margin-top:14px; font-weight:800; margin-top:auto">
                     Example: Excited → Action, Adventure, Sci-Fi
                 </div>
             </div>
@@ -586,7 +592,7 @@ class CineSlotUI:
                 <div style="color:#b3b3b3; margin-top:8px;">
                     CineSlot will later choose from movies the user has not watched yet.
                 </div>
-                <div style="color:#e50914; margin-top:14px; font-weight:800;">
+                <div style="color:#e50914; margin-top:14px; font-weight:800; margin-top:auto;">
                     Best for personal scheduling
                 </div>
             </div>
@@ -648,17 +654,24 @@ class CineSlotUI:
         """, unsafe_allow_html=True)
 
         st.markdown("""
-        <div class="section-card">
-            <h2>Team</h2>
-            <p style="color:#b3b3b3;">Jayesha Yamin, Fuzail Raza, Seniya Naeem</p>
-            <h2>AI Goal</h2>
-            <p style="color:#b3b3b3;">
-                MRV will select the most constrained time slot first. LCV will choose the movie that leaves the most flexibility for remaining slots.
-            </p>
-        </div>
-        """, unsafe_allow_html=True)
+                    <div class="random-box">
+                        <h3>Team</h3>
+                        <p style="color:#b3b3b3;">
+                            Jayesha Yamin, Fuzail Raza, Seniya Naeem
+                        </p>
+                    </div>
+                    """, unsafe_allow_html=True)
 
-
+        st.markdown("""
+                    <div class="random-box">
+                        <h3>AI Goal</h3>
+                        <p style="color:#b3b3b3;">
+                        MRV will select the most constrained time slot first. LCV will choose the movie that leaves the most flexibility for remaining slots.
+                        </p>
+                    </div>
+                    """, unsafe_allow_html=True)
+#
+#
 if __name__ == "__main__":
     db = CineSlotDB()
     ui = CineSlotUI(db)
