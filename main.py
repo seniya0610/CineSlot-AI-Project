@@ -180,7 +180,7 @@ class CineSlotUI:
     def _page_home(self):
         st.title("Welcome to CineSlot")
         st.caption("Your personal movie hub.")
-        st.write("Browse normalized movie data with clean, beginner-friendly cards.")
+        st.write("Browse our featured movies.")
 
         movies = self.db.read_all_movies()
         if movies.empty:
