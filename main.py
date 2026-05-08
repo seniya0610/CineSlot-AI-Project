@@ -1,13 +1,12 @@
 import os
 import pandas as pd
 import streamlit as st
+import sqlite3
 from datetime import datetime, date
+from ai.scheduler import schedule_movies
 
-MOVIES_NORMALIZED = "normalized/movies.csv"
-GENRES_NORMALIZED = "normalized/genres.csv"
-MOVIE_GENRES_NORMALIZED = "normalized/movie_genres.csv"
 
-REQUIRED_FILES = [MOVIES_NORMALIZED, GENRES_NORMALIZED, MOVIE_GENRES_NORMALIZED]
+DB_PATH = "data/movies.db"
 
 
 class CineSlotDB:
@@ -18,12 +17,14 @@ class CineSlotDB:
         self._load_data()
 
     def _load_data(self):
-        if not all(os.path.exists(path) for path in REQUIRED_FILES):
+        if not os.path.exists(DB_PATH):
             return
 
-        self.movies = pd.read_csv(MOVIES_NORMALIZED)
-        self.genres = pd.read_csv(GENRES_NORMALIZED)
-        self.movie_genres = pd.read_csv(MOVIE_GENRES_NORMALIZED)
+        conn = sqlite3.connect(DB_PATH)
+        self.movies = pd.read_sql("SELECT * FROM movie", conn)
+        self.genres = pd.read_sql("SELECT * FROM genre", conn)
+        self.movie_genres = pd.read_sql("SELECT * FROM movie_genre", conn)
+        conn.close()
 
         self.movies["overview"] = self.movies["overview"].fillna("No overview available.")
         self.movies["runtime"] = self.movies["runtime"].fillna(0)
@@ -52,6 +53,132 @@ class CineSlotDB:
         genre_names = self.genres[self.genres["genre_id"].isin(genre_ids)]["genre_name"].tolist()
 
         return ", ".join(genre_names)
+
+    def build_genre_map(self):
+        if self.movie_genres is None or self.genres is None or self.movies is None:
+            return {}
+        
+        genre_map = {}
+        for movie_id in self.movies["movie_id"].unique():
+            genre_map[movie_id] = self.get_movie_genres(movie_id)
+        return genre_map
+
+    def get_random_unwatched_list(self, count=50):
+        if self.movies is None:
+            return []
+
+        import random
+        all_movie_ids = self.movies["movie_id"].tolist()
+        random.shuffle(all_movie_ids)
+        return all_movie_ids[:min(count, len(all_movie_ids))]
+
+    def init_saved_schedules_table(self):
+        """Initialize the saved_schedules table if it doesn't exist"""
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS saved_schedules (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                slot_id TEXT NOT NULL,
+                slot_date TEXT NOT NULL,
+                slot_start TEXT NOT NULL,
+                slot_end TEXT NOT NULL,
+                slot_duration INTEGER NOT NULL,
+                movies_json TEXT NOT NULL,
+                total_runtime INTEGER NOT NULL,
+                remaining_time INTEGER NOT NULL,
+                mood TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+
+        conn.commit()
+        conn.close()
+
+    def save_schedule(self, slot_info, movies_list, mood=None):
+        """Save a schedule for a slot"""
+        import json
+
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+
+        movies_json = json.dumps([{
+            'movie_id': m['movie_id'],
+            'title': m['title'],
+            'runtime': m['runtime'],
+            'genres': m.get('genres', ''),
+            'overview': m.get('overview', ''),
+            'vote_average': m.get('vote_average', 0)
+        } for m in movies_list])
+
+        total_runtime = slot_info.get('total_runtime', sum(int(m.get('runtime', 0)) for m in movies_list))
+        remaining_time = slot_info.get('remaining_time', max(0, int(slot_info.get('duration', 0)) - total_runtime))
+
+        cursor.execute('''
+            INSERT INTO saved_schedules
+            (slot_id, slot_date, slot_start, slot_end, slot_duration, movies_json,
+             total_runtime, remaining_time, mood)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ''', (
+            slot_info.get('slot_id'),
+            slot_info.get('date'),
+            slot_info.get('start'),
+            slot_info.get('end'),
+            slot_info.get('duration'),
+            movies_json,
+            total_runtime,
+            remaining_time,
+            mood
+        ))
+
+        conn.commit()
+        conn.close()
+
+    def get_saved_schedules(self):
+        """Get all saved schedules"""
+        conn = sqlite3.connect(DB_PATH)
+        df = pd.read_sql("SELECT * FROM saved_schedules ORDER BY created_at DESC", conn)
+        conn.close()
+        return df
+
+    def get_schedule_by_id(self, schedule_id):
+        """Get a specific saved schedule"""
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+
+        cursor.execute("SELECT * FROM saved_schedules WHERE id = ?", (schedule_id,))
+        row = cursor.fetchone()
+
+        conn.close()
+
+        if row:
+            import json
+            return {
+                'id': row[0],
+                'slot_id': row[1],
+                'slot_date': row[2],
+                'slot_start': row[3],
+                'slot_end': row[4],
+                'slot_duration': row[5],
+                'movies': json.loads(row[6]),
+                'total_runtime': row[7],
+                'remaining_time': row[8],
+                'mood': row[9],
+                'created_at': row[10]
+            }
+        return None
+
+    def delete_schedule(self, schedule_id):
+        """Delete a saved schedule"""
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+
+        cursor.execute("DELETE FROM saved_schedules WHERE id = ?", (schedule_id,))
+
+        conn.commit()
+        conn.close()
+
 
 
 class CineSlotUI:
@@ -337,7 +464,7 @@ class CineSlotUI:
 
             page = st.radio(
                 "navigate",
-                ["Home", "Browse", "Schedule", "About"],
+                ["Home", "Browse", "Unwatched", "Schedule", "Saved Schedules", "About"],
                 label_visibility="hidden"
             )
 
@@ -349,16 +476,20 @@ class CineSlotUI:
     def run(self):
         page = self._render_sidebar()
 
-        if any(not os.path.exists(path) for path in REQUIRED_FILES):
-            st.error("Please run: python scripts/normalize_data.py to prepare the normalized dataset first.")
+        if not os.path.exists(DB_PATH) or self.db.movies is None:
+            st.error("Database not found. Please ensure data/movies.db exists.")
             return
 
         if page == "Home":
             self._page_home()
         elif page == "Browse":
             self._page_browse()
+        elif page == "Unwatched":
+            self._page_unwatched()
         elif page == "Schedule":
             self._page_schedule()
+        elif page == "Saved Schedules":
+            self._page_saved_schedules()
         elif page == "About":
             self._page_about()
 
@@ -481,6 +612,81 @@ class CineSlotUI:
         </div>
         """, unsafe_allow_html=True)
 
+        # Add to unwatched button
+        col1, col2 = st.columns([3, 1])
+        with col2:
+            if st.button("➕ Unwatched", key=f"add_unwatched_{movie['movie_id']}"):
+                if "unwatched_ids" not in st.session_state:
+                    st.session_state.unwatched_ids = []
+                
+                if movie["movie_id"] not in st.session_state.unwatched_ids:
+                    st.session_state.unwatched_ids.append(movie["movie_id"])
+                    st.success(f"Added {movie['title']} to unwatched list!")
+                else:
+                    st.info(f"{movie['title']} is already in your unwatched list.")
+
+    def _render_movie_card_with_unwatched(self, movie, show_add_button=True):
+        release_year = str(movie["release_date"])[:4] if pd.notna(movie["release_date"]) else "N/A"
+        runtime = int(movie["runtime"]) if pd.notna(movie["runtime"]) else 0
+        rating = float(movie["vote_average"]) if pd.notna(movie["vote_average"]) else 0.0
+        genres = self.db.get_movie_genres(movie["movie_id"])
+
+        st.markdown(f"""
+        <div class="movie-card">
+            <div class="movie-title">{movie["title"]}</div>
+            <div class="movie-meta">{release_year} · {runtime} min · ⭐ {rating:.1f}</div>
+            <div class="movie-detail"><b>Genres:</b> {genres or "N/A"}</div>
+            <div class="movie-detail"><b>Director:</b> {movie["director"]}</div>
+            <div class="movie-detail"><b>Top Cast:</b> {movie["top_cast"]}</div>
+            <div class="movie-detail"><b>Overview:</b> {movie["overview"]}</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        # Remove from unwatched button
+        col1, col2 = st.columns([3, 1])
+        with col2:
+            if st.button("➖ Remove", key=f"remove_unwatched_{movie['movie_id']}"):
+                if "unwatched_ids" in st.session_state and movie["movie_id"] in st.session_state.unwatched_ids:
+                    st.session_state.unwatched_ids.remove(movie["movie_id"])
+                    st.success(f"Removed {movie['title']} from unwatched list!")
+                    st.rerun()
+
+    def _page_unwatched(self):
+        st.markdown("""
+        <div class="hero">
+            <div class="hero-title">UNWATCHED LIST</div>
+            <div class="hero-subtitle">
+                Your personal movie queue. Add movies you want to watch and use this list for scheduling.
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        unwatched_ids = st.session_state.get("unwatched_ids", [])
+        movies_df = self.db.read_all_movies()
+
+        if not unwatched_ids:
+            st.markdown("""
+            <div class="empty-box">
+                Your unwatched list is empty. Browse movies and add them to your list!
+            </div>
+            """, unsafe_allow_html=True)
+            return
+
+        unwatched_movies = movies_df[movies_df['movie_id'].isin(unwatched_ids)].copy()
+
+        st.markdown(f"""
+        <div class="section-card">
+            <h3>{len(unwatched_movies)} Movies in Your Unwatched List</h3>
+            <p style="color:#b3b3b3;">These movies will be used when you select "Unwatched List" scheduling mode.</p>
+        </div>
+        """, unsafe_allow_html=True)
+
+        # Sort by rating for display
+        unwatched_movies = unwatched_movies.sort_values('vote_average', ascending=False)
+
+        for _, movie in unwatched_movies.iterrows():
+            self._render_movie_card_with_unwatched(movie, show_add_button=False)
+
     def _page_schedule(self):
         st.markdown("""
         <div class="hero">
@@ -500,16 +706,40 @@ class CineSlotUI:
         if "selected_mood" not in st.session_state:
             st.session_state.selected_mood = None
 
+        if "unwatched_ids" not in st.session_state:
+            # Initialize with random unwatched movies
+            random_unwatched = self.db.get_random_unwatched_list(50)
+            st.session_state.unwatched_ids = random_unwatched
+
+        if "current_schedule" not in st.session_state:
+            st.session_state.current_schedule = None
+
+        if "schedule_generated" not in st.session_state:
+            st.session_state.schedule_generated = False
+
+        if "excluded_movie_ids" not in st.session_state:
+            st.session_state.excluded_movie_ids = []
+
+        if "last_schedule_context" not in st.session_state:
+            st.session_state.last_schedule_context = None
+
+        if "saved_schedules" not in st.session_state:
+            st.session_state.saved_schedules = []
+
+        if "regenerate_requested" not in st.session_state:
+            st.session_state.regenerate_requested = False
+
+
         col1, col2, col3 = st.columns([1.4, 1, 1])
 
         with col1:
-            selected_date = st.date_input("Select Date", min_value=date.today())
+            selected_date = st.date_input("Select Date", min_value=date.today(), key="date_picker")
 
         with col2:
-            start_time = st.time_input("Start Time")
+            start_time = st.time_input("Start Time", key="start_time")
 
         with col3:
-            end_time = st.time_input("End Time")
+            end_time = st.time_input("End Time", key="end_time")
 
         if st.button("Add Time Slot"):
             start_dt = datetime.combine(selected_date, start_time)
@@ -520,15 +750,31 @@ class CineSlotUI:
             else:
                 duration = int((end_dt - start_dt).total_seconds() / 60)
 
-                st.session_state.slots.append({
-                    "slot_id": len(st.session_state.slots) + 1,
-                    "date": selected_date.strftime("%A, %d %B"),
-                    "start": start_time.strftime("%I:%M %p"),
-                    "end": end_time.strftime("%I:%M %p"),
-                    "duration": duration
-                })
+                # Check for overlapping slots on the same day
+                overlap_found = False
+                for existing_slot in st.session_state.slots:
+                    if existing_slot["date"] == selected_date.strftime("%A, %d %B"):
+                        existing_start = datetime.strptime(existing_slot["start"], "%I:%M %p").time()
+                        existing_end = datetime.strptime(existing_slot["end"], "%I:%M %p").time()
+                        existing_start_dt = datetime.combine(selected_date, existing_start)
+                        existing_end_dt = datetime.combine(selected_date, existing_end)
 
-                st.success("Time slot added.")
+                        if (start_dt < existing_end_dt and end_dt > existing_start_dt):
+                            overlap_found = True
+                            break
+
+                if overlap_found:
+                    st.error("This time slot overlaps with an existing slot on the same day.")
+                else:
+                    st.session_state.slots.append({
+                        "slot_id": len(st.session_state.slots) + 1,
+                        "date": selected_date.strftime("%A, %d %B"),
+                        "start": start_time.strftime("%I:%M %p"),
+                        "end": end_time.strftime("%I:%M %p"),
+                        "duration": duration
+                    })
+                    st.success("Time slot added.")
+
 
         if len(st.session_state.slots) == 0:
             st.markdown("""
@@ -559,10 +805,52 @@ class CineSlotUI:
             </div>
             """, unsafe_allow_html=True)
 
+        st.markdown("## Select Slots for Scheduling")
+
+        if len(st.session_state.slots) > 0:
+            st.markdown("""
+            <div style="background-color: #111111; padding: 20px; border-radius: 12px; border: 1px solid #333333; margin-bottom: 20px;">
+                <p style="color: #e50914; font-weight: 900; margin-bottom: 15px;">Choose which time slots to schedule movies for:</p>
+            </div>
+            """, unsafe_allow_html=True)
+
+            # Create checkboxes for each slot
+            selected_slots_indices = []
+            cols = st.columns(min(2, len(st.session_state.slots)))
+
+            for idx, slot in enumerate(st.session_state.slots):
+                col_idx = idx % len(cols)
+                with cols[col_idx]:
+                    slot_label = f"{slot['slot_id']}: {slot['date']} {slot['start']} → {slot['end']} ({slot['duration']} min)"
+                    if st.checkbox(slot_label, key=f"slot_{idx}", value=(idx == 0)):
+                        selected_slots_indices.append(idx)
+
+            selected_slots = [st.session_state.slots[i] for i in selected_slots_indices]
+
+            if selected_slots:
+                selected_labels = [f"{st.session_state.slots[i]['slot_id']}: {st.session_state.slots[i]['date']} {st.session_state.slots[i]['start']} → {st.session_state.slots[i]['end']}" for i in selected_slots_indices]
+                st.markdown(f"""
+                <div style="background-color: #0a0a0a; padding: 15px; border-radius: 8px; border-left: 4px solid #e50914; margin-top: 10px;">
+                    <strong style="color: #e50914;">Selected {len(selected_slots)} slot(s):</strong><br>
+                    {" • ".join(selected_labels)}
+                </div>
+                """, unsafe_allow_html=True)
+            else:
+                st.warning("Please select at least one slot to continue.")
+        else:
+            selected_slots = []
+
         if st.button("Clear Slots"):
             st.session_state.slots = []
             st.session_state.schedule_mode = None
             st.session_state.selected_mood = None
+            if "unwatched_ids" in st.session_state:
+                del st.session_state["unwatched_ids"]
+            st.session_state.current_schedule = None
+            st.session_state.schedule_generated = False
+            st.session_state.excluded_movie_ids = []
+            st.session_state.last_schedule_context = None
+            st.session_state.regenerate_requested = False
             st.rerun()
 
         st.markdown("## Choose Scheduling Style")
@@ -625,23 +913,279 @@ class CineSlotUI:
                 )
                 st.session_state.selected_mood = mood
 
+            if st.session_state.schedule_mode == "Unwatched List":
+                unwatched_count = len(st.session_state.get("unwatched_ids", []))
+                if unwatched_count > 0:
+                    st.success(f"Using {unwatched_count} movies from your unwatched list")
+                else:
+                    st.warning("Your unwatched list is empty. Add movies to it first!")
+
+            def perform_schedule_generation(regeneration=False):
+                genre_map = self.db.build_genre_map()
+                movies_df = self.db.read_all_movies()
+
+                if movies_df.empty:
+                    st.error("No movies loaded from database")
+                    return False
+
+                if not selected_slots:
+                    st.error("Select at least one slot to schedule.")
+                    return False
+
+                current_context = {
+                    "mode": st.session_state.schedule_mode,
+                    "mood": st.session_state.selected_mood if st.session_state.schedule_mode == "Mood Based" else None,
+                    "slots": [(slot['slot_id'], slot['date'], slot['start'], slot['end'], slot['duration']) for slot in selected_slots]
+                }
+
+                if st.session_state.last_schedule_context != current_context:
+                    st.session_state.excluded_movie_ids = []
+                    st.session_state.last_schedule_context = current_context
+
+                mood = st.session_state.selected_mood if st.session_state.schedule_mode == "Mood Based" else None
+                unwatched_ids = st.session_state.get("unwatched_ids", None)
+                excluded_ids = st.session_state.get("excluded_movie_ids", [])
+
+                try:
+                    schedule = schedule_movies(
+                        movies_df,
+                        genre_map,
+                        selected_slots,
+                        st.session_state.schedule_mode,
+                        mood=mood,
+                        unwatched_ids=unwatched_ids,
+                        excluded_movie_ids=excluded_ids
+                    )
+
+                    if schedule:
+                        st.session_state.current_schedule = schedule
+                        st.session_state.schedule_generated = True
+                        st.session_state.regenerate_requested = False
+                        return True
+                    else:
+                        if regeneration:
+                            st.warning("No new schedule could be generated with the current excluded movies. Reset exclusions or change the mood/slots.")
+                        else:
+                            st.error("Scheduler found no valid movies for these slots. Try longer time slots or change the mood.")
+                        return False
+                except Exception as e:
+                    st.error(f"Error generating schedule: {str(e)}")
+                    return False
+
             if st.button("Generate Schedule"):
-                st.markdown("""
-                <div class="section-card">
-                    <h2>Schedule Input Ready</h2>
-                    <p style="color:#b3b3b3;">
-                        These values will be passed to the MRV and LCV scheduler next.
-                    </p>
+                perform_schedule_generation(regeneration=False)
+
+            if st.session_state.regenerate_requested:
+                perform_schedule_generation(regeneration=True)
+
+        # Display generated schedule
+        if st.session_state.get("schedule_generated", False) and "current_schedule" in st.session_state:
+            schedule = st.session_state.current_schedule
+            
+            st.markdown("""
+            <div class="section-card">
+                <h2 style="color: #e50914;">✓ Schedule Generated</h2>
+                <p style="color:#b3b3b3;">Your movies are scheduled using CSP with MRV and LCV heuristics.</p>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            for slot_idx, slot_info in sorted(schedule.items()):
+                slot = slot_info['slot']
+                movies = slot_info['movies']
+                total_runtime = slot_info['total_runtime']
+                remaining = slot_info['remaining_time']
+                
+                st.markdown(f"""
+                <div class="slot-card" style="border-left: 5px solid #e50914; margin-bottom: 20px;">
+                    <div style="font-size:24px; font-weight:900; color:white; margin-bottom:10px;">
+                        {slot['date']} • {slot['start']} → {slot['end']}
+                    </div>
+                    <div style="color:#b3b3b3; margin-bottom:15px;">
+                        Total: {total_runtime} min used • {remaining} min remaining
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+                
+                for movie in movies:
+                    st.markdown(f"""
+                    <div class="movie-card" style="margin-left: 20px;">
+                        <div style="display:flex; justify-content:space-between; align-items:start;">
+                            <div>
+                                <div class="movie-title">{movie['title']}</div>
+                                <div class="movie-meta">{movie['vote_average']}/10 • {movie['runtime']} min</div>
+                                <div class="movie-detail"><strong>Genres:</strong> {movie['genres']}</div>
+                            </div>
+                        </div>
+                    </div>
+                    """, unsafe_allow_html=True)
+            
+            col1, col2 = st.columns(2)
+            with col1:
+                if st.button("Save Schedule", key="save_schedule"):
+                    # Initialize saved schedules table
+                    self.db.init_saved_schedules_table()
+
+                    # Save each slot's schedule
+                    saved_count = 0
+                    for slot_idx, slot_info in schedule.items():
+                        slot = slot_info.get('slot', {})
+                        movies = slot_info['movies']
+                        if movies and slot:
+                            self.db.save_schedule(slot, movies, st.session_state.get("selected_mood"))
+                            saved_count += 1
+
+                    if saved_count > 0:
+                        st.success(f"Schedule saved! {saved_count} slot(s) saved to Saved Schedules.")
+                    else:
+                        st.warning("No movies were scheduled to save.")
+            with col2:
+                if st.button("Regenerate Schedule", key="regenerate"):
+                    if st.session_state.get("current_schedule"):
+                        current_movie_ids = [movie['movie_id'] for slot_info in st.session_state.current_schedule.values() for movie in slot_info['movies']]
+                        st.session_state.excluded_movie_ids = list(set(st.session_state.get("excluded_movie_ids", []) + current_movie_ids))
+                    st.session_state.schedule_generated = False
+                    st.session_state.current_schedule = None
+                    st.session_state.regenerate_requested = True
+                    st.rerun()
+
+
+    def _page_saved_schedules(self):
+        st.markdown("""
+        <div class="hero">
+            <div class="hero-title">SAVED SCHEDULES</div>
+            <div class="hero-subtitle">
+                View and manage your previously saved movie schedules.
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        # Initialize the saved schedules table
+        self.db.init_saved_schedules_table()
+
+        # Get all saved schedules
+        saved_schedules_df = self.db.get_saved_schedules()
+
+        if saved_schedules_df.empty:
+            st.markdown("""
+            <div class="empty-box">
+                No saved schedules yet. Generate and save a schedule from the Schedule page to see it here.
+            </div>
+            """, unsafe_allow_html=True)
+            return
+
+        # Group schedules by slot
+        slot_groups = {}
+        for _, row in saved_schedules_df.iterrows():
+            slot_key = f"{row['slot_id']}: {row['slot_date']} {row['slot_start']} → {row['slot_end']}"
+            if slot_key not in slot_groups:
+                slot_groups[slot_key] = []
+            slot_groups[slot_key].append({
+                'id': row['id'],
+                'slot_duration': row['slot_duration'],
+                'movies': row['movies_json'],  # This will be parsed later
+                'total_runtime': row['total_runtime'],
+                'remaining_time': row['remaining_time'],
+                'mood': row['mood'],
+                'created_at': row['created_at']
+            })
+
+        # Display saved slots
+        st.markdown("## Your Saved Schedules")
+
+        for slot_key, schedules in slot_groups.items():
+            # Show the most recent schedule for this slot
+            latest_schedule = max(schedules, key=lambda x: x['created_at'])
+
+            with st.expander(f"📅 {slot_key} ({latest_schedule['slot_duration']} min slot)", expanded=False):
+                st.markdown(f"""
+                <div style="background-color: #111111; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                    <div style="color: #e50914; font-weight: 900; margin-bottom: 10px;">Latest Schedule</div>
+                    <div style="color: #b3b3b3;">
+                        Created: {latest_schedule['created_at']}<br>
+                        Mood: {latest_schedule['mood'] or 'None'}<br>
+                        Total runtime: {latest_schedule['total_runtime']} min<br>
+                        Remaining time: {latest_schedule['remaining_time']} min
+                    </div>
                 </div>
                 """, unsafe_allow_html=True)
 
-                st.write("Slots:", st.session_state.slots)
-                st.write("Mode:", st.session_state.schedule_mode)
+                # Parse movies JSON
+                import json
+                try:
+                    movies = json.loads(latest_schedule['movies'])
+                    for movie in movies:
+                        st.markdown(f"""
+                        <div class="movie-card" style="margin-left: 10px; margin-bottom: 10px;">
+                            <div style="display:flex; justify-content:space-between; align-items:start;">
+                                <div>
+                                    <div class="movie-title">{movie['title']}</div>
+                                    <div class="movie-meta">{movie.get('vote_average', 0)}/10 • {movie['runtime']} min</div>
+                                    <div class="movie-detail"><strong>Genres:</strong> {movie.get('genres', 'N/A')}</div>
+                                </div>
+                            </div>
+                        </div>
+                        """, unsafe_allow_html=True)
+                except:
+                    st.error("Error loading movie data for this schedule.")
 
-                if st.session_state.schedule_mode == "Mood Based":
-                    st.write("Mood:", st.session_state.selected_mood)
+                # Action buttons
+                col1, col2, col3 = st.columns(3)
+                with col1:
+                    if st.button("View Details", key=f"view_{latest_schedule['id']}"):
+                        st.session_state.view_schedule_id = latest_schedule['id']
+                        st.rerun()
 
-                st.warning("MRV and LCV scheduling will be connected next.")
+                with col2:
+                    if st.button("Load This Schedule", key=f"load_{latest_schedule['id']}"):
+                        # This would load the schedule back into the current session
+                        st.info("Schedule loading feature coming soon!")
+
+                with col3:
+                    if st.button("Delete", key=f"delete_{latest_schedule['id']}", type="secondary"):
+                        self.db.delete_schedule(latest_schedule['id'])
+                        st.success("Schedule deleted!")
+                        st.rerun()
+
+        # Show detailed view if requested
+        if 'view_schedule_id' in st.session_state and st.session_state.view_schedule_id:
+            schedule_details = self.db.get_schedule_by_id(st.session_state.view_schedule_id)
+            if schedule_details:
+                st.markdown("---")
+                st.markdown("## Schedule Details")
+
+                st.markdown(f"""
+                <div class="slot-card" style="border-left: 5px solid #e50914; margin-bottom: 20px;">
+                    <div style="font-size:24px; font-weight:900; color:white; margin-bottom:10px;">
+                        {schedule_details['slot_date']} • {schedule_details['slot_start']} → {schedule_details['slot_end']}
+                    </div>
+                    <div style="color:#b3b3b3; margin-bottom:15px;">
+                        Duration: {schedule_details['slot_duration']} min • Used: {schedule_details['total_runtime']} min • Remaining: {schedule_details['remaining_time']} min
+                    </div>
+                    <div style="color:#e50914; font-weight:800;">
+                        Mood: {schedule_details['mood'] or 'None'}
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+
+                st.markdown("### Movies Scheduled:")
+                for movie in schedule_details['movies']:
+                    st.markdown(f"""
+                    <div class="movie-card">
+                        <div style="display:flex; justify-content:space-between; align-items:start;">
+                            <div>
+                                <div class="movie-title">{movie['title']}</div>
+                                <div class="movie-meta">{movie.get('vote_average', 0)}/10 • {movie['runtime']} min</div>
+                                <div class="movie-detail"><strong>Genres:</strong> {movie.get('genres', 'N/A')}</div>
+                                <div class="movie-detail" style="margin-top: 8px;">{movie.get('overview', 'No description available.')[:200]}...</div>
+                            </div>
+                        </div>
+                    </div>
+                    """, unsafe_allow_html=True)
+
+                if st.button("← Back to Saved Schedules"):
+                    del st.session_state.view_schedule_id
+                    st.rerun()
+
 
     def _page_about(self):
         st.markdown("""
