@@ -1129,18 +1129,13 @@ class CineSlotUI:
                     st.error("Error loading movie data for this schedule.")
 
                 # Action buttons
-                col1, col2, col3 = st.columns(3)
+                col1, col2 = st.columns(2)
                 with col1:
                     if st.button("View Details", key=f"view_{latest_schedule['id']}"):
                         st.session_state.view_schedule_id = latest_schedule['id']
                         st.rerun()
 
                 with col2:
-                    if st.button("Load This Schedule", key=f"load_{latest_schedule['id']}"):
-                        # This would load the schedule back into the current session
-                        st.info("Schedule loading feature coming soon!")
-
-                with col3:
                     if st.button("Delete", key=f"delete_{latest_schedule['id']}", type="secondary"):
                         self.db.delete_schedule(latest_schedule['id'])
                         st.success("Schedule deleted!")
