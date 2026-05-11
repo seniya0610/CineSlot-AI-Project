@@ -2,7 +2,7 @@ import os
 import pandas as pd
 import streamlit as st
 import sqlite3
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 from scheduler import schedule_movies
 import requests
 import re
@@ -360,15 +360,21 @@ class CineSlotUI:
             border-right: 1px solid #242424;
             padding-left: 0; padding-right: 0;
         }
-        [data-testid="stSidebar"] .stRadio { width: 230%; }
+        
+        [data-testid="stSidebar"] .stRadio { width: 150%; }
         [data-testid="stSidebar"] .stRadio > div { gap: 10px; }
         [data-testid="stSidebar"] .stRadio label {
-            width: 100% !important; min-height: 60px;
+            width: 100% !important; 
+            min-height: 60px;
             background: linear-gradient(130deg, #111111, #070707);
-            color: white !important; border: 1px solid #242424;
-            border-radius: 14px; padding: 14px 18px !important;
-            margin-bottom: 10px; font-size: 17px; font-weight: 900;
-            cursor: pointer; transition: all 0.25s ease-in-out;
+            color: white !important; 
+            border: 1px solid #242424;
+            border-radius: 14px; 
+            padding: 14px 18px !important;
+            margin-bottom: 10px; 
+            font-size: 17px; font-weight: 900;
+            cursor: pointer; 
+            transition: all 0.25s ease-in-out;
         }
         /* DO NOT REMOVE */
         [data-testid="stSidebar"] .stRadio { margin-top: -38px; }
@@ -382,9 +388,12 @@ class CineSlotUI:
         h1, h2, h3 { color: white; font-weight: 900; }
 
         .stButton > button {
-            background-color: #141414 !important; color: white !important;
-            border: 1px solid #333333 !important; border-radius: 12px !important;
-            padding: 10px 18px !important; font-weight: 800 !important;
+            background-color: #141414 !important; 
+            color: white !important;
+            border: 1px solid #333333 !important; 
+            border-radius: 12px !important;
+            padding: 10px 18px !important; 
+            font-weight: 800 !important;
             transition: all 0.25s ease-in-out !important;
         }
         .stButton > button:hover {
@@ -414,27 +423,37 @@ class CineSlotUI:
 
         .section-card {
             background: linear-gradient(145deg, #151515, #080808);
-            border: 1px solid #2a2a2a; border-radius: 20px; padding: 24px;
-            margin-bottom: 18px; box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+            border: 1px solid #2a2a2a; 
+            border-radius: 20px; 
+            padding: 24px;
+            margin-bottom: 18px; 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.35);
             transition: all 0.25s ease-in-out;
+            height: 200px;
         }
         .section-card:hover {
-            border: 1px solid #db0b15; border-left: 5px solid #e50914;
-            border-top: 1px solid #2a2a2a; border-right: 1px solid #2a2a2a;
-            border-bottom: 1px solid #2a2a2a; transform: translateX(5px);
+            border: 1px solid #db0b15; 
+            border-left: 5px solid #e50914;
+            border-top: 1px solid #2a2a2a; 
+            border-right: 1px solid #2a2a2a;
+            border-bottom: 1px solid #2a2a2a; 
+            transform: translateX(5px);
             background: linear-gradient(135deg, #E5091452, #000000F2);
         }
 
         .movie-card {
             background: #111111; border: 1px solid #252525;
             border-left: 5px solid #e50914; border-radius: 18px;
-            padding: 22px; margin-bottom: 16px; box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+            padding: 22px; 
+            margin-bottom: 10px; 
+            box-shadow: 0 8px 24px rgba(0,0,0,0.35);
             transition: all 0.25s ease-in-out;
         }
         .movie-card:hover {
             background: linear-gradient(135deg, #171717, #080808);
             border-color: #e50914; transform: translateX(10px);
         }
+        
         .movie-title { font-size: 26px; font-weight: 900; color: white; margin-bottom: 8px; }
         .movie-meta { color: #e50914; font-weight: 800; margin-bottom: 10px; }
         .movie-detail { color: #cfcfcf; margin-top: 6px; line-height: 1.5; }
@@ -470,7 +489,7 @@ class CineSlotUI:
             transition: all 0.25s ease-in-out; display: flex; flex-direction: column;
         }
         .mode-card:hover { border-color: #e50914; }
-
+                
         .red-pill {
             background-color: #250000; color: #ff4b4b; padding: 8px 14px;
             border-radius: 20px; font-weight: 800; border: 1px solid #5a0000;
@@ -519,7 +538,7 @@ class CineSlotUI:
 
             page = st.radio(
                 "navigate",
-                ["Home", "Browse", "Favorites", "Recommendations", "Unwatched", "Schedule", "Saved Schedules", "About"],
+                ["Home", "Browse", "Favorites", "Recommendations", "To Watch", "Schedule", "Saved Schedules", "About"],
                 label_visibility="hidden"
             )
 
@@ -542,7 +561,8 @@ class CineSlotUI:
                     st.session_state.cineslot_user = None
                     st.rerun()
             else:
-                st.markdown("<div style='color:#b3b3b3;font-size:13px;padding:6px;'>Sign in to use Favorites</div>", unsafe_allow_html=True)
+                st.markdown("<div style='color:#b3b3b3;font-size:13px;padding:6px;'>Sign in to use Favorites</div>",
+                            unsafe_allow_html=True)
                 username_input = st.text_input("Username", key="sidebar_username_input", placeholder="Enter username…")
                 if st.button("Sign In", key="sidebar_signin"):
                     name = username_input.strip()
@@ -574,7 +594,7 @@ class CineSlotUI:
             self._page_favorites()
         elif page == "Recommendations":
             self._page_recommendations()
-        elif page == "Unwatched":
+        elif page == "To Watch":
             self._page_unwatched()
         elif page == "Schedule":
             self._page_schedule()
@@ -598,13 +618,7 @@ class CineSlotUI:
 
     def _render_movie_card(self, movie, card_key_prefix="mc", show_fav_button=True,
                            show_unwatched_button=True, extra_badge_html=""):
-        """
-        Universal movie card renderer.
-        card_key_prefix  – unique prefix for Streamlit widget keys
-        show_fav_button  – show ❤️ / 💔 favorite toggle
-        show_unwatched_button – show ➕ Unwatched button
-        extra_badge_html – optional HTML injected next to the title (e.g. rec rank)
-        """
+
         release_year = str(movie["release_date"])[:4] if pd.notna(movie["release_date"]) else "N/A"
         runtime = int(movie["runtime"]) if pd.notna(movie["runtime"]) else 0
         rating = float(movie["vote_average"]) if pd.notna(movie["vote_average"]) else 0.0
@@ -634,9 +648,8 @@ class CineSlotUI:
         if show_unwatched_button: btn_slots.append("unwatched")
 
         n = len(btn_slots)
-        spacer_cols = st.columns([2] + [1] * n)
-
-        col_map = {name: spacer_cols[i + 1] for i, name in enumerate(btn_slots)}
+        spacer_cols = st.columns(n)
+        col_map = {name: spacer_cols[i] for i, name in enumerate(btn_slots)}
 
         # Trailer button
         with col_map["trailer"]:
@@ -647,16 +660,16 @@ class CineSlotUI:
         if show_fav_button and "fav" in col_map:
             with col_map["fav"]:
                 if not user:
-                    st.button("❤️ Fav", key=f"fav_{card_key_prefix}_{mid}",
+                    st.button("❤️ Favorites", key=f"fav_{card_key_prefix}_{mid}",
                               use_container_width=True, disabled=True,
                               help="Sign in to use Favorites")
                 elif is_fav:
-                    if st.button("💔 Unfav", key=f"fav_{card_key_prefix}_{mid}", use_container_width=True):
+                    if st.button("💔 Remove", key=f"fav_{card_key_prefix}_{mid}", use_container_width=True):
                         self.db.remove_favorite(user, mid)
                         st.success(f"Removed '{movie['title']}' from Favorites.")
                         st.rerun()
                 else:
-                    if st.button("❤️ Fav", key=f"fav_{card_key_prefix}_{mid}", use_container_width=True):
+                    if st.button("❤️ Favorites", key=f"fav_{card_key_prefix}_{mid}", use_container_width=True):
                         self.db.add_favorite(user, mid)
                         st.success(f"Added '{movie['title']}' to Favorites!")
                         st.rerun()
@@ -664,7 +677,7 @@ class CineSlotUI:
         # Unwatched button
         if show_unwatched_button and "unwatched" in col_map:
             with col_map["unwatched"]:
-                if st.button("➕ Unwatched", key=f"unwatched_{card_key_prefix}_{mid}", use_container_width=True):
+                if st.button("➕ To Watch", key=f"unwatched_{card_key_prefix}_{mid}", use_container_width=True):
                     if "unwatched_ids" not in st.session_state:
                         st.session_state.unwatched_ids = []
                     if mid not in st.session_state.unwatched_ids:
@@ -768,7 +781,7 @@ class CineSlotUI:
             ("Browse", "Explore clean movie cards from normalized TMDB data."),
             ("Schedule", "Add multiple time slots across days and choose a scheduling style."),
             ("Favorites", "Heart movies you love and get personalized recommendations."),
-            ("Recommendations", "AI-powered suggestions based on your taste profile."),
+            ("For You", "AI-powered suggestions based on your taste profile."),
         ]
         for col, (title, desc) in zip([col1, col2, col3, col4], cards):
             with col:
@@ -825,7 +838,7 @@ class CineSlotUI:
         filtered = filtered[
             (filtered["runtime"] >= runtime_min) & (filtered["runtime"] <= runtime_max) &
             (filtered["vote_average"] >= rating_min) & (filtered["vote_average"] <= rating_max)
-        ]
+            ]
 
         st.markdown(f"### Showing {len(filtered)} movies")
         if filtered.empty:
@@ -1064,46 +1077,47 @@ class CineSlotUI:
             start_dt = datetime.combine(selected_date, start_time)
             end_dt = datetime.combine(selected_date, end_time)
             if end_dt <= start_dt:
-                st.error("End time must be after start time.")
+                end_dt += timedelta(days=1)
+            duration = int((end_dt - start_dt).total_seconds() / 60)
+            overlap_found = any(
+                (start_dt < datetime.combine(selected_date,
+                                             datetime.strptime(s["end"], "%I:%M %p").time()) and
+                 end_dt > datetime.combine(selected_date,
+                                           datetime.strptime(s["start"], "%I:%M %p").time()))
+                for s in st.session_state.slots
+                if s["date"] == selected_date.strftime("%A, %d %B")
+            )
+            if overlap_found:
+                st.error("This time slot overlaps with an existing slot on the same day.")
             else:
-                duration = int((end_dt - start_dt).total_seconds() / 60)
-                overlap_found = any(
-                    (start_dt < datetime.combine(selected_date,
-                        datetime.strptime(s["end"], "%I:%M %p").time()) and
-                     end_dt > datetime.combine(selected_date,
-                        datetime.strptime(s["start"], "%I:%M %p").time()))
-                    for s in st.session_state.slots
-                    if s["date"] == selected_date.strftime("%A, %d %B")
-                )
-                if overlap_found:
-                    st.error("This time slot overlaps with an existing slot on the same day.")
-                else:
-                    st.session_state.slots.append({
-                        "slot_id": len(st.session_state.slots) + 1,
-                        "date": selected_date.strftime("%A, %d %B"),
-                        "start": start_time.strftime("%I:%M %p"),
-                        "end": end_time.strftime("%I:%M %p"),
-                        "duration": duration
-                    })
-                    st.success("Time slot added.")
+                st.session_state.slots.append({
+                    "slot_id": len(st.session_state.slots) + 1,
+                    "date": selected_date.strftime("%A, %d %B"),
+                    "start": start_time.strftime("%I:%M %p"),
+                    "end": end_time.strftime("%I:%M %p"),
+                    "duration": duration
+                })
+                st.success("Time slot added.")
 
         if not st.session_state.slots:
-            st.markdown('<div class="empty-box">No slots added yet. Add at least one watch window to continue.</div>', unsafe_allow_html=True)
+            st.markdown('<div class="empty-box">No slots added yet. Add at least one watch window to continue.</div>',
+                        unsafe_allow_html=True)
             return
+        cols = st.columns(min(2, len(st.session_state.slots)))
 
         st.markdown("## Your Watch Windows")
         for slot in st.session_state.slots:
             st.markdown(f"""
-            <div class="slot-card">
-                <div style="display:flex;justify-content:space-between;align-items:center;">
-                    <div>
-                        <div style="font-size:22px;font-weight:900;color:white;">{slot["date"]}</div>
-                        <div style="color:#b3b3b3;margin-top:5px;">{slot["start"]} → {slot["end"]}</div>
+                <div class="slot-card">
+                    <div style="display:flex;justify-content:space-between;align-items:center;">
+                        <div>
+                            <div style="font-size:22px;font-weight:900;color:white;">{slot["date"]}</div>
+                            <div style="color:#b3b3b3;margin-top:5px;">{slot["start"]} → {slot["end"]}</div>
+                        </div>
+                        <div class="red-pill">{slot["duration"]} min</div>
                     </div>
-                    <div class="red-pill">{slot["duration"]} min</div>
                 </div>
-            </div>
-            """, unsafe_allow_html=True)
+                """, unsafe_allow_html=True)
 
         st.markdown("## Select Slots for Scheduling")
         selected_slots_indices = []
@@ -1116,12 +1130,14 @@ class CineSlotUI:
 
         selected_slots = [st.session_state.slots[i] for i in selected_slots_indices]
         if selected_slots:
-            labels = " • ".join(f"{st.session_state.slots[i]['slot_id']}: {st.session_state.slots[i]['date']} {st.session_state.slots[i]['start']} → {st.session_state.slots[i]['end']}" for i in selected_slots_indices)
+            labels = " • ".join(
+                f"{st.session_state.slots[i]['slot_id']}: {st.session_state.slots[i]['date']} {st.session_state.slots[i]['start']} → {st.session_state.slots[i]['end']}"
+                for i in selected_slots_indices)
             st.markdown(f"""
-            <div style="background:#0a0a0a;padding:15px;border-radius:8px;border-left:4px solid #e50914;margin-top:10px;">
-                <strong style="color:#e50914;">Selected {len(selected_slots)} slot(s):</strong><br>{labels}
-            </div>
-            """, unsafe_allow_html=True)
+                <div style="background:#0a0a0a;padding:15px;border-radius:8px;border-left:4px solid #e50914;margin-top:10px;">
+                    <strong style="color:#e50914;">Selected {len(selected_slots)} slot(s):</strong><br>{labels}
+                </div>
+                """, unsafe_allow_html=True)
         else:
             st.warning("Please select at least one slot to continue.")
 
@@ -1135,36 +1151,43 @@ class CineSlotUI:
         st.markdown("## Choose Scheduling Style")
         col1, col2 = st.columns(2)
         with col1:
-            st.markdown("""<div class="mode-card"><div style="font-size:26px;font-weight:900;color:white;">Mood-Based</div><div style="color:#b3b3b3;margin-top:8px;">Choose a mood and CineSlot will filter movies using related genres.</div><div style="color:#e50914;margin-top:14px;font-weight:800;">Example: Excited → Action, Adventure, Sci-Fi</div></div>""", unsafe_allow_html=True)
+            st.markdown(
+                """<div class="mode-card"><div style="font-size:26px;font-weight:900;color:white;">Mood-Based</div><div style="color:#b3b3b3;margin-top:8px;">Choose a mood and CineSlot will filter movies using related genres.</div><div style="color:#e50914;margin-top:14px;font-weight:800;">Example: Excited → Action, Adventure, Sci-Fi</div></div>""",
+                unsafe_allow_html=True)
             if st.button("Choose Mood-Based"):
                 st.session_state.schedule_mode = "Mood Based"
         with col2:
-            st.markdown("""<div class="mode-card"><div style="font-size:26px;font-weight:900;color:white;">Unwatched List</div><div style="color:#b3b3b3;margin-top:8px;">CineSlot will choose from movies the user has not watched yet.</div><div style="color:#e50914;margin-top:14px;font-weight:800;">Best for personal scheduling</div></div>""", unsafe_allow_html=True)
+            st.markdown(
+                """<div class="mode-card"><div style="font-size:26px;font-weight:900;color:white;">Unwatched List</div><div style="color:#b3b3b3;margin-top:8px;">CineSlot will choose from movies the user has not watched yet.</div><div style="color:#e50914;margin-top:14px;font-weight:800;">Best for personal scheduling</div></div>""",
+                unsafe_allow_html=True)
             if st.button("Choose Unwatched List"):
                 st.session_state.schedule_mode = "Unwatched List"
 
         if st.session_state.schedule_mode is not None:
             st.markdown(f"""
-            <div style="background:#111111;padding:16px 20px;border-radius:14px;border:1px solid #e50914;margin-top:22px;color:white;">
-                Selected Mode: <span style="color:#e50914;font-weight:900;">{st.session_state.schedule_mode}</span>
-            </div>
-            """, unsafe_allow_html=True)
+                <div style="background:#111111;padding:16px 20px;border-radius:14px;border:1px solid #e50914;margin-top:22px;color:white;">
+                    Selected Mode: <span style="color:#e50914;font-weight:900;">{st.session_state.schedule_mode}</span>
+                </div>
+                """, unsafe_allow_html=True)
 
             if st.session_state.schedule_mode == "Mood Based":
                 st.session_state.selected_mood = st.selectbox(
-                    "Select Mood", ["Happy", "Excited", "Romantic", "Scared", "Relaxed", "Thoughtful"]
+                    "Select Mood", ["Comedy", "Action", "Romantic", "Scary", "Relaxed", "Thoughtful"]
                 )
             if st.session_state.schedule_mode == "Unwatched List":
                 cnt = len(st.session_state.get("unwatched_ids", []))
-                (st.success if cnt > 0 else st.warning)(f"Using {cnt} movies from your unwatched list" if cnt > 0 else "Your unwatched list is empty. Add movies to it first!")
+                (st.success if cnt > 0 else st.warning)(
+                    f"Using {cnt} movies from your unwatched list" if cnt > 0 else "Your unwatched list is empty. Add movies to it first!")
 
             def perform_schedule_generation(regeneration=False):
                 genre_map = self.db.build_genre_map()
                 movies_df = self.db.read_all_movies()
                 if movies_df.empty:
-                    st.error("No movies loaded from database"); return False
+                    st.error("No movies loaded from database");
+                    return False
                 if not selected_slots:
-                    st.error("Select at least one slot to schedule."); return False
+                    st.error("Select at least one slot to schedule.");
+                    return False
 
                 current_context = {
                     "mode": st.session_state.schedule_mode,
@@ -1192,7 +1215,8 @@ class CineSlotUI:
                         st.warning(msg) if regeneration else st.error(msg)
                         return False
                 except Exception as e:
-                    st.error(f"Error generating schedule: {e}"); return False
+                    st.error(f"Error generating schedule: {e}");
+                    return False
 
             if st.button("Generate Schedule"):
                 perform_schedule_generation(regeneration=False)
@@ -1201,140 +1225,158 @@ class CineSlotUI:
 
         if st.session_state.get("schedule_generated") and st.session_state.get("current_schedule"):
             schedule = st.session_state.current_schedule
-            st.markdown("""<div class="section-card"><h2 style="color:#e50914;">✓ Schedule Generated</h2><p style="color:#b3b3b3;">Your movies are scheduled using CSP with MRV and LCV heuristics.</p></div>""", unsafe_allow_html=True)
+            st.markdown(
+                """<div class="section-card"><h2 style="color:#e50914;">✓ Schedule Generated</h2><p style="color:#b3b3b3;">Your movies are scheduled using CSP with MRV and LCV heuristics.</p></div>""",
+                unsafe_allow_html=True)
 
             for _, slot_info in sorted(schedule.items()):
                 slot = slot_info['slot']
                 movies = slot_info['movies']
                 st.markdown(f"""
-                <div class="slot-card" style="border-left:5px solid #e50914;margin-bottom:20px;">
-                    <div style="font-size:24px;font-weight:900;color:white;margin-bottom:10px;">{slot['date']} • {slot['start']} → {slot['end']}</div>
-                    <div style="color:#b3b3b3;margin-bottom:15px;">Total: {slot_info['total_runtime']} min used • {slot_info['remaining_time']} min remaining</div>
-                </div>
-                """, unsafe_allow_html=True)
-                for movie in movies:
-                    st.markdown(f"""
-                    <div class="movie-card" style="margin-left:20px;">
-                        <div class="movie-title">{movie['title']}</div>
-                        <div class="movie-meta">{movie['vote_average']}/10 • {movie['runtime']} min</div>
-                        <div class="movie-detail"><strong>Genres:</strong> {movie['genres']}</div>
+                    <div class="slot-card" style="border-left:5px solid #e50914;margin-bottom:20px;">
+                        <div style="font-size:24px;font-weight:900;color:white;margin-bottom:10px;">{slot['date']} • {slot['start']} → {slot['end']}</div>
+                        <div style="color:#b3b3b3;margin-bottom:15px;">Total: {slot_info['total_runtime']} min used • {slot_info['remaining_time']} min remaining</div>
                     </div>
                     """, unsafe_allow_html=True)
+                for movie in movies:
+                    st.markdown(f"""
+                        <div class="movie-card" style="margin-left:20px;">
+                            <div class="movie-title">{movie['title']}</div>
+                            <div class="movie-meta">{movie['vote_average']}/10 • {movie['runtime']} min</div>
+                            <div class="movie-detail"><strong>Genres:</strong> {movie['genres']}</div>
+                        </div>
+                        """, unsafe_allow_html=True)
 
             col1, col2 = st.columns(2)
             with col1:
                 if st.button("Save Schedule", key="save_schedule"):
                     self.db.init_saved_schedules_table()
-                    saved = sum(1 for slot_info in schedule.values() if slot_info['movies'] and slot_info.get('slot') and (self.db.save_schedule(slot_info['slot'], slot_info['movies'], st.session_state.get("selected_mood")) or True))
+                    saved = sum(1 for slot_info in schedule.values() if slot_info['movies'] and slot_info.get('slot') and (
+                                self.db.save_schedule(slot_info, slot_info['movies'],
+                                                      st.session_state.get("selected_mood")) or True))
                     st.success(f"Schedule saved! {saved} slot(s) saved.")
             with col2:
                 if st.button("Regenerate Schedule", key="regenerate"):
                     if st.session_state.get("current_schedule"):
-                        new_excl = [m['movie_id'] for si in st.session_state.current_schedule.values() for m in si['movies']]
-                        st.session_state.excluded_movie_ids = list(set(st.session_state.get("excluded_movie_ids", []) + new_excl))
+                        new_excl = [m['movie_id'] for si in st.session_state.current_schedule.values() for m in
+                                    si['movies']]
+                        st.session_state.excluded_movie_ids = list(
+                            set(st.session_state.get("excluded_movie_ids", []) + new_excl))
                     st.session_state.schedule_generated = False
                     st.session_state.current_schedule = None
                     st.session_state.regenerate_requested = True
                     st.rerun()
 
-    # ── Saved Schedules page ──────────────────────────────────────────────────
 
-    def _page_saved_schedules(self):
-        st.markdown("""
+# ── Saved Schedules page ──────────────────────────────────────────────────
+
+def _page_saved_schedules(self):
+    st.markdown("""
         <div class="hero">
             <div class="hero-title">SAVED SCHEDULES</div>
             <div class="hero-subtitle">View and manage your previously saved movie schedules.</div>
         </div>
         """, unsafe_allow_html=True)
 
-        self.db.init_saved_schedules_table()
-        saved_df = self.db.get_saved_schedules()
+    self.db.init_saved_schedules_table()
+    saved_df = self.db.get_saved_schedules()
 
-        if saved_df.empty:
-            st.markdown('<div class="empty-box">No saved schedules yet. Generate and save a schedule from the Schedule page.</div>', unsafe_allow_html=True)
-            return
+    if saved_df.empty:
+        st.markdown(
+            '<div class="empty-box">No saved schedules yet. Generate and save a schedule from the Schedule page.</div>',
+            unsafe_allow_html=True)
+        return
 
-        slot_groups = {}
-        for _, row in saved_df.iterrows():
-            key = f"{row['slot_id']}: {row['slot_date']} {row['slot_start']} → {row['slot_end']}"
-            slot_groups.setdefault(key, []).append({
-                'id': row['id'], 'slot_duration': row['slot_duration'],
-                'movies': row['movies_json'], 'total_runtime': row['total_runtime'],
-                'remaining_time': row['remaining_time'], 'mood': row['mood'], 'created_at': row['created_at']
-            })
+    slot_groups = {}
+    for _, row in saved_df.iterrows():
+        key = f"{row['slot_id']}: {row['slot_date']} {row['slot_start']} → {row['slot_end']}"
+        slot_groups.setdefault(key, []).append({
+            'id': row['id'], 'slot_duration': row['slot_duration'],
+            'movies': row['movies_json'], 'total_runtime': row['total_runtime'],
+            'remaining_time': row['remaining_time'], 'mood': row['mood'], 'created_at': row['created_at']
+        })
 
-        st.markdown("## Your Saved Schedules")
-        for slot_key, schedules in slot_groups.items():
-            latest = max(schedules, key=lambda x: x['created_at'])
-            with st.expander(f"📅 {slot_key} ({latest['slot_duration']} min slot)", expanded=False):
-                st.markdown(f"""
+    st.markdown("## Your Saved Schedules")
+    for slot_key, schedules in slot_groups.items():
+        latest = max(schedules, key=lambda x: x['created_at'])
+        with st.expander(f"📅 {slot_key} ({latest['slot_duration']} min slot)", expanded=False):
+            st.markdown(f"""
                 <div style="background:#111111;padding:15px;border-radius:8px;margin-bottom:15px;">
                     <div style="color:#e50914;font-weight:900;margin-bottom:10px;">Latest Schedule</div>
                     <div style="color:#b3b3b3;">Created: {latest['created_at']}<br>Mood: {latest['mood'] or 'None'}<br>Total runtime: {latest['total_runtime']} min<br>Remaining: {latest['remaining_time']} min</div>
                 </div>
                 """, unsafe_allow_html=True)
-                import json
-                try:
-                    for movie in json.loads(latest['movies']):
-                        st.markdown(f"""
+            import json
+            try:
+                for movie in json.loads(latest['movies']):
+                    st.markdown(f"""
                         <div class="movie-card" style="margin-left:10px;margin-bottom:10px;">
                             <div class="movie-title">{movie['title']}</div>
-                            <div class="movie-meta">{movie.get('vote_average',0)}/10 • {movie['runtime']} min</div>
-                            <div class="movie-detail"><strong>Genres:</strong> {movie.get('genres','N/A')}</div>
+                            <div class="movie-meta">{movie.get('vote_average', 0)}/10 • {movie['runtime']} min</div>
+                            <div class="movie-detail"><strong>Genres:</strong> {movie.get('genres', 'N/A')}</div>
                         </div>
                         """, unsafe_allow_html=True)
-                except:
-                    st.error("Error loading movie data.")
+            except:
+                st.error("Error loading movie data.")
 
-                c1, c2 = st.columns(2)
-                with c1:
-                    if st.button("View Details", key=f"view_{latest['id']}"):
-                        st.session_state.view_schedule_id = latest['id']; st.rerun()
-                with c2:
-                    if st.button("Delete", key=f"delete_{latest['id']}", type="secondary"):
-                        self.db.delete_schedule(latest['id']); st.success("Deleted!"); st.rerun()
+            c1, c2 = st.columns(2)
+            with c1:
+                if st.button("View Details", key=f"view_{latest['id']}"):
+                    st.session_state.view_schedule_id = latest['id'];
+                    st.rerun()
+            with c2:
+                if st.button("Delete", key=f"delete_{latest['id']}", type="secondary"):
+                    self.db.delete_schedule(latest['id']);
+                    st.success("Deleted!");
+                    st.rerun()
 
-        if st.session_state.get("view_schedule_id"):
-            details = self.db.get_schedule_by_id(st.session_state.view_schedule_id)
-            if details:
-                st.markdown("---")
-                st.markdown("## Schedule Details")
-                st.markdown(f"""
+    if st.session_state.get("view_schedule_id"):
+        details = self.db.get_schedule_by_id(st.session_state.view_schedule_id)
+        if details:
+            st.markdown("---")
+            st.markdown("## Schedule Details")
+            st.markdown(f"""
                 <div class="slot-card" style="border-left:5px solid #e50914;margin-bottom:20px;">
                     <div style="font-size:24px;font-weight:900;color:white;margin-bottom:10px;">{details['slot_date']} • {details['slot_start']} → {details['slot_end']}</div>
                     <div style="color:#b3b3b3;margin-bottom:15px;">Duration: {details['slot_duration']} min • Used: {details['total_runtime']} min • Remaining: {details['remaining_time']} min</div>
                     <div style="color:#e50914;font-weight:800;">Mood: {details['mood'] or 'None'}</div>
                 </div>
                 """, unsafe_allow_html=True)
-                for movie in details['movies']:
-                    st.markdown(f"""
+            for movie in details['movies']:
+                st.markdown(f"""
                     <div class="movie-card">
                         <div class="movie-title">{movie['title']}</div>
-                        <div class="movie-meta">{movie.get('vote_average',0)}/10 • {movie['runtime']} min</div>
-                        <div class="movie-detail"><strong>Genres:</strong> {movie.get('genres','N/A')}</div>
-                        <div class="movie-detail" style="margin-top:8px;">{movie.get('overview','')[:200]}...</div>
+                        <div class="movie-meta">{movie.get('vote_average', 0)}/10 • {movie['runtime']} min</div>
+                        <div class="movie-detail"><strong>Genres:</strong> {movie.get('genres', 'N/A')}</div>
+                        <div class="movie-detail" style="margin-top:8px;">{movie.get('overview', '')[:200]}...</div>
                     </div>
                     """, unsafe_allow_html=True)
-                if st.button("← Back to Saved Schedules"):
-                    del st.session_state.view_schedule_id; st.rerun()
+            if st.button("← Back to Saved Schedules"):
+                del st.session_state.view_schedule_id;
+                st.rerun()
 
-    # ── About page ────────────────────────────────────────────────────────────
 
-    def _page_about(self):
-        st.markdown("""
+# ── About page ────────────────────────────────────────────────────────────
+
+def _page_about(self):
+    st.markdown("""
         <div class="hero">
             <div class="hero-title">ABOUT CINESLOT</div>
             <div class="hero-subtitle">CineSlot is an AI-powered movie scheduling system using normalized movie data and CSP scheduling.</div>
         </div>
         """, unsafe_allow_html=True)
 
-        for title, body in [
-            ("Team", "Jayesha Yamin, Fuzail Raza, Seniya Naeem"),
-            ("AI Goal", "MRV will select the most constrained time slot first. LCV will choose the movie that leaves the most flexibility for remaining slots."),
-            ("Favorites & Recommendations", "Sign in with any username to favorite movies. CineSlot scores candidates by genre affinity (×3), director match (×2), and overall rating (×1) derived from your favorites list — giving you a personalized recommendation feed that improves as you add more favorites."),
-            ("YouTube Integration", "Click the 🎬 Trailer button on any movie to watch trailers directly inside CineSlot. Trailers are automatically cached for instant loading!"),
-        ]:
-            st.markdown(f"""<div class="random-box"><h3>{title}</h3><p style="color:#b3b3b3;">{body}</p></div>""", unsafe_allow_html=True)
+    for title, body in [
+        ("Team", "Jayesha Yamin, Fuzail Raza, Seniya Naeem"),
+        ("AI Goal",
+         "MRV will select the most constrained time slot first. LCV will choose the movie that leaves the most flexibility for remaining slots."),
+        ("Favorites & Recommendations",
+         "Sign in with any username to favorite movies. CineSlot scores candidates by genre affinity (×3), director match (×2), and overall rating (×1) derived from your favorites list — giving you a personalized recommendation feed that improves as you add more favorites."),
+        ("YouTube Integration",
+         "Click the 🎬 Trailer button on any movie to watch trailers directly inside CineSlot. Trailers are automatically cached for instant loading!"),
+    ]:
+        st.markdown(f"""<div class="random-box"><h3>{title}</h3><p style="color:#b3b3b3;">{body}</p></div>""",
+                    unsafe_allow_html=True)
 
 
 # ─────────────────────────────────────────────
