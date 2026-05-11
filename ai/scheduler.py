@@ -210,7 +210,6 @@ class MovieSchedulerCSP:
         THRESHOLD = 5
 
         profile = MOOD_PROFILES.get(mood)
-
         if not profile:
             return movies
 
@@ -219,14 +218,11 @@ class MovieSchedulerCSP:
         negative_weights = profile.get("negative", {})
 
         mood_scores = []
-
         for _, row in movies.iterrows():
 
             score = 0
 
-            # -------------------------
             # GENRES
-            # -------------------------
             genres_raw = self.movie_genres_map.get(row['movie_id'], '')
 
             genres = [
@@ -239,62 +235,44 @@ class MovieSchedulerCSP:
                 score += genre_weights.get(genre, 0)
                 score += negative_weights.get(genre, 0)
 
-            # -------------------------
             # TEXT PROCESSING
-            # -------------------------
             text = (
                     str(row.get('title', '')) + ' ' +
                     str(row.get('overview', ''))
             ).lower()
 
             words = TOKEN_PATTERN.findall(text)
-
             word_set = set(words)
-
-            # -------------------------
+            
             # KEYWORD SCORING
-            # -------------------------
             for keyword, weight in keyword_weights.items():
-
                 # Multi-word phrase
                 if ' ' in keyword:
                     if keyword in text:
                         score += weight
-
                 # Single token
                 else:
                     if keyword in word_set:
                         score += weight
 
-            # -------------------------
             # NORMALIZATION
-            # -------------------------
             word_count = max(len(words), 1)
-
             score = max(score, 0)
             normalized_score = score / (1 + word_count * 0.015)
-
             mood_scores.append(round(normalized_score, 2))
 
-        # -------------------------
         # SAVE SCORES
-        # -------------------------
         filtered_movies = movies.copy()
-
         filtered_movies['mood_score'] = mood_scores
 
-        # -------------------------
         # FILTER + SORT
-        # -------------------------
         filtered_movies = filtered_movies[
             filtered_movies['mood_score'] >= THRESHOLD
             ]
-
         filtered_movies = filtered_movies.sort_values(
             by='mood_score',
             ascending=False
         )
-
         return filtered_movies
 
     def schedule(self, slots: List[Dict], mood: Optional[str] = None,
