@@ -1270,113 +1270,113 @@ class CineSlotUI:
 
 # ── Saved Schedules page ──────────────────────────────────────────────────
 
-def _page_saved_schedules(self):
-    st.markdown("""
-        <div class="hero">
-            <div class="hero-title">SAVED SCHEDULES</div>
-            <div class="hero-subtitle">View and manage your previously saved movie schedules.</div>
-        </div>
-        """, unsafe_allow_html=True)
+    def _page_saved_schedules(self):
+        st.markdown("""
+            <div class="hero">
+                <div class="hero-title">SAVED SCHEDULES</div>
+                <div class="hero-subtitle">View and manage your previously saved movie schedules.</div>
+            </div>
+            """, unsafe_allow_html=True)
 
-    self.db.init_saved_schedules_table()
-    saved_df = self.db.get_saved_schedules()
+        self.db.init_saved_schedules_table()
+        saved_df = self.db.get_saved_schedules()
 
-    if saved_df.empty:
-        st.markdown(
-            '<div class="empty-box">No saved schedules yet. Generate and save a schedule from the Schedule page.</div>',
-            unsafe_allow_html=True)
-        return
+        if saved_df.empty:
+            st.markdown(
+                '<div class="empty-box">No saved schedules yet. Generate and save a schedule from the Schedule page.</div>',
+                unsafe_allow_html=True)
+            return
 
-    slot_groups = {}
-    for _, row in saved_df.iterrows():
-        key = f"{row['slot_id']}: {row['slot_date']} {row['slot_start']} → {row['slot_end']}"
-        slot_groups.setdefault(key, []).append({
-            'id': row['id'], 'slot_duration': row['slot_duration'],
-            'movies': row['movies_json'], 'total_runtime': row['total_runtime'],
-            'remaining_time': row['remaining_time'], 'mood': row['mood'], 'created_at': row['created_at']
-        })
+        slot_groups = {}
+        for _, row in saved_df.iterrows():
+            key = f"{row['slot_id']}: {row['slot_date']} {row['slot_start']} → {row['slot_end']}"
+            slot_groups.setdefault(key, []).append({
+                'id': row['id'], 'slot_duration': row['slot_duration'],
+                'movies': row['movies_json'], 'total_runtime': row['total_runtime'],
+                'remaining_time': row['remaining_time'], 'mood': row['mood'], 'created_at': row['created_at']
+            })
 
-    st.markdown("## Your Saved Schedules")
-    for slot_key, schedules in slot_groups.items():
-        latest = max(schedules, key=lambda x: x['created_at'])
-        with st.expander(f"📅 {slot_key} ({latest['slot_duration']} min slot)", expanded=False):
-            st.markdown(f"""
-                <div style="background:#111111;padding:15px;border-radius:8px;margin-bottom:15px;">
-                    <div style="color:#e50914;font-weight:900;margin-bottom:10px;">Latest Schedule</div>
-                    <div style="color:#b3b3b3;">Created: {latest['created_at']}<br>Mood: {latest['mood'] or 'None'}<br>Total runtime: {latest['total_runtime']} min<br>Remaining: {latest['remaining_time']} min</div>
-                </div>
-                """, unsafe_allow_html=True)
-            import json
-            try:
-                for movie in json.loads(latest['movies']):
+        st.markdown("## Your Saved Schedules")
+        for slot_key, schedules in slot_groups.items():
+            latest = max(schedules, key=lambda x: x['created_at'])
+            with st.expander(f"📅 {slot_key} ({latest['slot_duration']} min slot)", expanded=False):
+                st.markdown(f"""
+                    <div style="background:#111111;padding:15px;border-radius:8px;margin-bottom:15px;">
+                        <div style="color:#e50914;font-weight:900;margin-bottom:10px;">Latest Schedule</div>
+                        <div style="color:#b3b3b3;">Created: {latest['created_at']}<br>Mood: {latest['mood'] or 'None'}<br>Total runtime: {latest['total_runtime']} min<br>Remaining: {latest['remaining_time']} min</div>
+                    </div>
+                    """, unsafe_allow_html=True)
+                import json
+                try:
+                    for movie in json.loads(latest['movies']):
+                        st.markdown(f"""
+                            <div class="movie-card" style="margin-left:10px;margin-bottom:10px;">
+                                <div class="movie-title">{movie['title']}</div>
+                                <div class="movie-meta">{movie.get('vote_average', 0)}/10 • {movie['runtime']} min</div>
+                                <div class="movie-detail"><strong>Genres:</strong> {movie.get('genres', 'N/A')}</div>
+                            </div>
+                            """, unsafe_allow_html=True)
+                except:
+                    st.error("Error loading movie data.")
+
+                c1, c2 = st.columns(2)
+                with c1:
+                    if st.button("View Details", key=f"view_{latest['id']}"):
+                        st.session_state.view_schedule_id = latest['id'];
+                        st.rerun()
+                with c2:
+                    if st.button("Delete", key=f"delete_{latest['id']}", type="secondary"):
+                        self.db.delete_schedule(latest['id']);
+                        st.success("Deleted!");
+                        st.rerun()
+
+        if st.session_state.get("view_schedule_id"):
+            details = self.db.get_schedule_by_id(st.session_state.view_schedule_id)
+            if details:
+                st.markdown("---")
+                st.markdown("## Schedule Details")
+                st.markdown(f"""
+                    <div class="slot-card" style="border-left:5px solid #e50914;margin-bottom:20px;">
+                        <div style="font-size:24px;font-weight:900;color:white;margin-bottom:10px;">{details['slot_date']} • {details['slot_start']} → {details['slot_end']}</div>
+                        <div style="color:#b3b3b3;margin-bottom:15px;">Duration: {details['slot_duration']} min • Used: {details['total_runtime']} min • Remaining: {details['remaining_time']} min</div>
+                        <div style="color:#e50914;font-weight:800;">Mood: {details['mood'] or 'None'}</div>
+                    </div>
+                    """, unsafe_allow_html=True)
+                for movie in details['movies']:
                     st.markdown(f"""
-                        <div class="movie-card" style="margin-left:10px;margin-bottom:10px;">
+                        <div class="movie-card">
                             <div class="movie-title">{movie['title']}</div>
                             <div class="movie-meta">{movie.get('vote_average', 0)}/10 • {movie['runtime']} min</div>
                             <div class="movie-detail"><strong>Genres:</strong> {movie.get('genres', 'N/A')}</div>
+                            <div class="movie-detail" style="margin-top:8px;">{movie.get('overview', '')[:200]}...</div>
                         </div>
                         """, unsafe_allow_html=True)
-            except:
-                st.error("Error loading movie data.")
-
-            c1, c2 = st.columns(2)
-            with c1:
-                if st.button("View Details", key=f"view_{latest['id']}"):
-                    st.session_state.view_schedule_id = latest['id'];
-                    st.rerun()
-            with c2:
-                if st.button("Delete", key=f"delete_{latest['id']}", type="secondary"):
-                    self.db.delete_schedule(latest['id']);
-                    st.success("Deleted!");
+                if st.button("← Back to Saved Schedules"):
+                    del st.session_state.view_schedule_id;
                     st.rerun()
 
-    if st.session_state.get("view_schedule_id"):
-        details = self.db.get_schedule_by_id(st.session_state.view_schedule_id)
-        if details:
-            st.markdown("---")
-            st.markdown("## Schedule Details")
-            st.markdown(f"""
-                <div class="slot-card" style="border-left:5px solid #e50914;margin-bottom:20px;">
-                    <div style="font-size:24px;font-weight:900;color:white;margin-bottom:10px;">{details['slot_date']} • {details['slot_start']} → {details['slot_end']}</div>
-                    <div style="color:#b3b3b3;margin-bottom:15px;">Duration: {details['slot_duration']} min • Used: {details['total_runtime']} min • Remaining: {details['remaining_time']} min</div>
-                    <div style="color:#e50914;font-weight:800;">Mood: {details['mood'] or 'None'}</div>
-                </div>
-                """, unsafe_allow_html=True)
-            for movie in details['movies']:
-                st.markdown(f"""
-                    <div class="movie-card">
-                        <div class="movie-title">{movie['title']}</div>
-                        <div class="movie-meta">{movie.get('vote_average', 0)}/10 • {movie['runtime']} min</div>
-                        <div class="movie-detail"><strong>Genres:</strong> {movie.get('genres', 'N/A')}</div>
-                        <div class="movie-detail" style="margin-top:8px;">{movie.get('overview', '')[:200]}...</div>
-                    </div>
-                    """, unsafe_allow_html=True)
-            if st.button("← Back to Saved Schedules"):
-                del st.session_state.view_schedule_id;
-                st.rerun()
 
+    # ── About page ────────────────────────────────────────────────────────────
 
-# ── About page ────────────────────────────────────────────────────────────
+    def _page_about(self):
+        st.markdown("""
+            <div class="hero">
+                <div class="hero-title">ABOUT CINESLOT</div>
+                <div class="hero-subtitle">CineSlot is an AI-powered movie scheduling system using normalized movie data and CSP scheduling.</div>
+            </div>
+            """, unsafe_allow_html=True)
 
-def _page_about(self):
-    st.markdown("""
-        <div class="hero">
-            <div class="hero-title">ABOUT CINESLOT</div>
-            <div class="hero-subtitle">CineSlot is an AI-powered movie scheduling system using normalized movie data and CSP scheduling.</div>
-        </div>
-        """, unsafe_allow_html=True)
-
-    for title, body in [
-        ("Team", "Jayesha Yamin, Fuzail Raza, Seniya Naeem"),
-        ("AI Goal",
-         "MRV will select the most constrained time slot first. LCV will choose the movie that leaves the most flexibility for remaining slots."),
-        ("Favorites & Recommendations",
-         "Sign in with any username to favorite movies. CineSlot scores candidates by genre affinity (×3), director match (×2), and overall rating (×1) derived from your favorites list — giving you a personalized recommendation feed that improves as you add more favorites."),
-        ("YouTube Integration",
-         "Click the 🎬 Trailer button on any movie to watch trailers directly inside CineSlot. Trailers are automatically cached for instant loading!"),
-    ]:
-        st.markdown(f"""<div class="random-box"><h3>{title}</h3><p style="color:#b3b3b3;">{body}</p></div>""",
-                    unsafe_allow_html=True)
+        for title, body in [
+            ("Team", "Jayesha Yamin, Fuzail Raza, Seniya Naeem"),
+            ("AI Goal",
+             "MRV will select the most constrained time slot first. LCV will choose the movie that leaves the most flexibility for remaining slots."),
+            ("Favorites & Recommendations",
+             "Sign in with any username to favorite movies. CineSlot scores candidates by genre affinity (×3), director match (×2), and overall rating (×1) derived from your favorites list — giving you a personalized recommendation feed that improves as you add more favorites."),
+            ("YouTube Integration",
+             "Click the 🎬 Trailer button on any movie to watch trailers directly inside CineSlot. Trailers are automatically cached for instant loading!"),
+        ]:
+            st.markdown(f"""<div class="random-box"><h3>{title}</h3><p style="color:#b3b3b3;">{body}</p></div>""",
+                        unsafe_allow_html=True)
 
 
 # ─────────────────────────────────────────────
